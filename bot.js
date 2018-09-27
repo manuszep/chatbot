@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { ActivityTypes } = require('botbuilder');
-const { DialogSet, NumberPrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+const { ActivityTypes, MessageFactory } = require('botbuilder');
+const { DialogSet, ChoicePrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 
 const { SlotFillingDialog } = require('./SlotFillingDialog');
 const { SlotDetails } = require('./SlotDetails');
@@ -24,53 +24,43 @@ class SampleBot {
         // Create a dialog set to include the dialogs used by this bot.
         this.dialogs = new DialogSet(this.dialogState);
 
-        const l1Slot = new SlotDetails('first', 'text', 'Please enter your first name.');
-
-        // Set up a series of questions for collecting the user's name.
-        const fullnameSlots = [
-            new SlotDetails('first', 'text', 'Please enter your first name.'),
-            new SlotDetails('last', 'text', 'Please enter your last name.')
-        ];
-
-        // Set up a series of questions to collect a street address.
-        const addressSlots = [
-            new SlotDetails('street', 'text', 'Please enter your street address.'),
-            new SlotDetails('city', 'text', 'Please enter the city.'),
-            new SlotDetails('zip', 'text', 'Please enter your zipcode.')
-        ];
-
-        // Link the questions together into a parent group that contains references
-        // to both the fullname and address questions defined above.
-        const slots = [
-            new SlotDetails('fullname', 'fullname'),
-            new SlotDetails('age', 'number', 'Please enter your age.'),
-            new SlotDetails('shoesize', 'shoesize', 'Please enter your shoe size.', 'You must enter a size between 0 and 16. Half sizes are acceptable.'),
-            new SlotDetails('address', 'address')
-        ];
+        const l1Slot = new SlotDetails('level1', 'level1', this.getSuggestedActions([
+            'Assistance',
+            'Déclaration',
+            'Réparation',
+            'Autres'
+        ], 'Domaine'));
+        const l2Slot = new SlotDetails('level2', 'level2', 'Subdomain');
 
         // Add the individual child dialogs and prompts used.
         // Note that the built-in prompts work hand-in-hand with our custom SlotFillingDialog class
         // because they are both based on the provided Dialog class.
-        this.dialogs.add(new SlotFillingDialog('address', addressSlots));
-        this.dialogs.add(new SlotFillingDialog('fullname', fullnameSlots));
-        this.dialogs.add(new TextPrompt('text'));
-        this.dialogs.add(new NumberPrompt('number'));
-        this.dialogs.add(new NumberPrompt('shoesize', this.shoeSizeValidator));
-        this.dialogs.add(new SlotFillingDialog('slot-dialog', slots));
+        this.dialogs.add(new ChoicePrompt('level1'));
+        this.dialogs.add(new ChoicePrompt('level2'));
 
         // Finally, add a 2-step WaterfallDialog that will initiate the SlotFillingDialog,
         // and then collect and display the results.
         this.dialogs.add(new WaterfallDialog('root', [
-            this.startDialog.bind(this),
+            this.promptForL1.bind(this),
+            this.promptForL2.bind(this),
             this.processResults.bind(this)
         ]));
     }
 
-    // This is the first step of the WaterfallDialog.
-    // It kicks off the dialog with the multi-question SlotFillingDialog,
-    // then passes the aggregated results on to the next step.
-    async startDialog(step) {
-        return await step.beginDialog('slot-dialog');
+    /**
+     * Send suggested actions to the user.
+     * @param {TurnContext} turnContext A TurnContext instance containing all the data needed for processing this conversation turn.
+     */
+    async getSuggestedActions(options, message) {
+        return MessageFactory.suggestedActions(options, message);
+    }
+
+    async promptForL1(step) {
+        await step.prompt('level1', 'Domain', ['Assistance', 'Déclaration', 'Réparation', 'Autres']);
+    }
+
+    async promptForL2(step) {
+        return await step.prompt('level2', `Sub domain`);
     }
 
     // This is the second step of the WaterfallDialog.
