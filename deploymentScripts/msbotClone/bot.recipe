@@ -3,7 +3,7 @@
   "resources": [
     {
       "type": "endpoint",
-      "id": "128",
+      "id": "1",
       "name": "development",
       "url": "http://localhost:3978/api/messages"
     },
@@ -16,17 +16,17 @@
     {
       "type": "abs",
       "id": "3",
-      "name": "suggested-actions-Bot"
+      "name": "custom-dialogs-Bot"
     },
     {
       "type": "appInsights",
       "id": "4",
-      "name": "suggested-actions-Insights"
+      "name": "custom-dialogs-Insights"
     },
     {
       "type": "blob",
       "id": "5",
-      "name": "suggested-actions-Blob",
+      "name": "custom-dialogs-Blob",
       "container": "botstatestore"
     }
   ]

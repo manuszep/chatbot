@@ -1,40 +1,31 @@
-This sample shows how to use suggested actions. This bot example uses [`restify`](https://www.npmjs.com/package/restify) and [`dotenv`](https://www.npmjs.com/package/dotenv).
+This sample demonstrates how to sub-class the Dialog class to create
+different bot control mechanism like simple slot filling.
 
 # To try this sample
 - Clone the repository
     ```bash
-    git clone https://github.com/Microsoft/botbuilder-samples.git
+    git clone https://github.com/microsoft/botbuilder-samples.git
     ```
-- In a terminal, navigate to samples/javascript_nodejs/08.suggested-actions
+- In a terminal, navigate to samples/javascript_nodejs/19.custom-dialogs
     ```bash
-    cd samples/javascript_nodejs/08.suggested-actions
+    cd samples/javascript_nodejs/19.custom-dialogs
     ```
-- [Optional] Update the .env file under samples/javascript_nodejs/08.suggested-actions with your botFileSecret
-    For Azure Bot Service bots, you can find the botFileSecret under application settings.
 - Install modules and start the bot
     ```bash
-    npm i & npm start
-    ```
-    Alternatively you can also use nodemon via
-    ```bash
-    npm i & npm run watch
+    npm i && npm start
     ```
 
 # Testing the bot using Bot Framework Emulator
-[Microsoft Bot Framework Emulator](https://github.com/microsoft/botframework-emulator) is a desktop application that allows bot developers to test and debug their bots on localhost or running remotely through a tunnel.
+[Microsoft Bot Framework Emulator](https://github.com/microsoft/botframework-emulator) is
+a desktop application that allows bot developers to test and debug their bots on localhost
+or running remotely through a tunnel.
 
-Install the Bot Framework Emulator from [here](https://aka.ms/botframework-emulator).
+- Install the Bot Framework Emulator from [here](https://aka.ms/botframework-emulator)
 
 ## Connect to bot using Bot Framework Emulator V4
 - Launch Bot Framework Emulator
-- File -> Open Bot Configuration and navigate to samples/javascript_nodejs/08.suggested-actions folder
-- Select suggested-actions.bot file
-
-# Suggested Actions
-Suggested actions enable your bot to present buttons that the user can tap to provide input. Suggested actions appear close to the composer and enhance user experience.
-They enable the user to answer a question or make a selection with a simple tap of a button, rather than having to type a response with a keyboard.
-
-Unlike buttons that appear within rich cards (which remain visible and accessible to the user even after being tapped), buttons that appear within the suggested actions pane will disappear after the user makes a selection. This prevents the user from tapping stale buttons within a conversation and simplifies bot development (since you will not need to account for that scenario).
+- File -> Open Bot Configuration and navigate to javascript_nodejs/21.custom-dialogs
+- Select custom-dialogs.bot file
 
 # Deploy this bot to Azure
 You can use the [MSBot](https://github.com/microsoft/botbuilder-tools) Bot Builder CLI tool to clone and configure any services this sample depends on. 
@@ -52,8 +43,19 @@ To clone this bot, run
 msbot clone services -f deploymentScripts/msbotClone -n <BOT-NAME> -l <Azure-location> --subscriptionId <Azure-subscription-id>
 ```
 
+# Custom Dialogs
+
+Botbuilder provides a built-in base class called `Dialog`. By subclassing Dialog, developers
+can create new ways to define and control dialog flows used by the bot. By adhering to the
+features of this class, developers will create custom dialogs that can be used side-by-side
+with other dialog types, as well as built-in or custom prompts.
+
+This example demonstrates a custom Dialog class called `SlotFillingDialog`, which takes a
+series of "slots" which define a value the bot needs to collect from the user, as well
+as the prompt it should use. The bot will iterate through all of the slots until they are
+all full, at which point the dialog completes.
 
 # Further reading
-- [Azure Bot Service](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-overview-introduction?view=azure-bot-service-4.0)
-- [Bot State](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-storage-concept?view=azure-bot-service-4.0)
-- [Suggested Actions](https://docs.microsoft.com/en-us/azure/bot-service/nodejs/bot-builder-nodejs-send-suggested-actions?view=azure-bot-service-4.0)
+- [Dialog class reference](https://docs.microsoft.com/en-us/javascript/api/botbuilder-dialogs/dialog)
+- [WaterfallDialog class reference](https://docs.microsoft.com/en-us/javascript/api/botbuilder-dialogs/waterfall)
+- [Manage complex conversation flows with dialogs](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-dialog-manage-complex-conversation-flow?view=azure-bot-service-4.0&tabs=javascript)

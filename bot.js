@@ -1,70 +1,159 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { ActivityTypes, MessageFactory, TurnContext } = require('botbuilder');
+const { ActivityTypes } = require('botbuilder');
+const { DialogSet, NumberPrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 
-/**
- * A bot that responds to input from suggested actions.
- */
-class SuggestedActionsBot {
+const { SlotFillingDialog } = require('./SlotFillingDialog');
+const { SlotDetails } = require('./SlotDetails');
+
+const DIALOG_STATE_PROPERTY = 'dialogState';
+
+class SampleBot {
     /**
-     * Every conversation turn for our SuggestedActionsbot will call this method.
-     * There are no dialogs used, since it's "single turn" processing, meaning a single request and
-     * response, with no stateful conversation.
-     * @param {TurnContext} turnContext A TurnContext instance containing all the data needed for processing this conversation turn.
+     * MainDialog defines the core business logic of this bot.
+     * @param {ConversationState} conversationState A ConversationState object used to store dialog state.
+     */
+    constructor(conversationState) {
+        this.conversationState = conversationState;
+
+        // Create a property used to store dialog state.
+        // See https://aka.ms/about-bot-state-accessors to learn more about bot state and state accessors.
+        this.dialogState = this.conversationState.createProperty(DIALOG_STATE_PROPERTY);
+
+        // Create a dialog set to include the dialogs used by this bot.
+        this.dialogs = new DialogSet(this.dialogState);
+
+        const l1Slot = new SlotDetails('first', 'text', 'Please enter your first name.');
+
+        // Set up a series of questions for collecting the user's name.
+        const fullnameSlots = [
+            new SlotDetails('first', 'text', 'Please enter your first name.'),
+            new SlotDetails('last', 'text', 'Please enter your last name.')
+        ];
+
+        // Set up a series of questions to collect a street address.
+        const addressSlots = [
+            new SlotDetails('street', 'text', 'Please enter your street address.'),
+            new SlotDetails('city', 'text', 'Please enter the city.'),
+            new SlotDetails('zip', 'text', 'Please enter your zipcode.')
+        ];
+
+        // Link the questions together into a parent group that contains references
+        // to both the fullname and address questions defined above.
+        const slots = [
+            new SlotDetails('fullname', 'fullname'),
+            new SlotDetails('age', 'number', 'Please enter your age.'),
+            new SlotDetails('shoesize', 'shoesize', 'Please enter your shoe size.', 'You must enter a size between 0 and 16. Half sizes are acceptable.'),
+            new SlotDetails('address', 'address')
+        ];
+
+        // Add the individual child dialogs and prompts used.
+        // Note that the built-in prompts work hand-in-hand with our custom SlotFillingDialog class
+        // because they are both based on the provided Dialog class.
+        this.dialogs.add(new SlotFillingDialog('address', addressSlots));
+        this.dialogs.add(new SlotFillingDialog('fullname', fullnameSlots));
+        this.dialogs.add(new TextPrompt('text'));
+        this.dialogs.add(new NumberPrompt('number'));
+        this.dialogs.add(new NumberPrompt('shoesize', this.shoeSizeValidator));
+        this.dialogs.add(new SlotFillingDialog('slot-dialog', slots));
+
+        // Finally, add a 2-step WaterfallDialog that will initiate the SlotFillingDialog,
+        // and then collect and display the results.
+        this.dialogs.add(new WaterfallDialog('root', [
+            this.startDialog.bind(this),
+            this.processResults.bind(this)
+        ]));
+    }
+
+    // This is the first step of the WaterfallDialog.
+    // It kicks off the dialog with the multi-question SlotFillingDialog,
+    // then passes the aggregated results on to the next step.
+    async startDialog(step) {
+        return await step.beginDialog('slot-dialog');
+    }
+
+    // This is the second step of the WaterfallDialog.
+    // It receives the results of the SlotFillingDialog and displays them.
+    async processResults(step) {
+        // Each "slot" in the SlotFillingDialog is represented by a field in step.result.values.
+        // The complex that contain subfields have their own .values field containing the sub-values.
+        const values = step.result.values;
+
+        const fullname = values['fullname'].values;
+        await step.context.sendActivity(`Your name is ${ fullname['first'] } ${ fullname['last'] }.`);
+
+        await step.context.sendActivity(`You wear a size ${ values['shoesize'] } shoe.`);
+
+        const address = values['address'].values;
+        await step.context.sendActivity(`Your address is: ${ address['street'] }, ${ address['city'] } ${ address['zip'] }`);
+
+        return await step.endDialog();
+    }
+
+    // Validate that the provided shoe size is between 0 and 16, and allow half steps.
+    // This is used to instantiate a specialized NumberPrompt.
+    async shoeSizeValidator(prompt) {
+        if (prompt.recognized.succeeded) {
+            const shoesize = prompt.recognized.value;
+
+            // Shoe sizes can range from 0 to 16.
+            if (shoesize >= 0 && shoesize <= 16) {
+                // We only accept round numbers or half sizes.
+                if (Math.floor(shoesize) === shoesize || Math.floor(shoesize * 2) === shoesize * 2) {
+                    // Indicate success.
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     *
+     * @param {TurnContext} turnContext A TurnContext object representing an incoming message to be handled by the bot.
      */
     async onTurn(turnContext) {
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         if (turnContext.activity.type === ActivityTypes.Message) {
-            const text = turnContext.activity.text;
+            // Create dialog context.
+            const dc = await this.dialogs.createContext(turnContext);
 
-            // Create an array with the valid color options.
-            const validColors = ['Red', 'Blue', 'Yellow'];
-
-            // If the `text` is in the Array, a valid color was selected and send agreement.
-            if (validColors.includes(text)) {
-                await turnContext.sendActivity(`I agree, ${ text } is the best color.`);
-            } else {
-                await turnContext.sendActivity('Please select a color.');
-            }
-
-            // After the bot has responded send the suggested actions.
-            await this.sendSuggestedActions(turnContext);
-        } else if (turnContext.activity.type === ActivityTypes.ConversationUpdate) {
-            await this.sendWelcomeMessage(turnContext);
-        } else {
-            await turnContext.sendActivity(`[${ turnContext.activity.type } event detected.]`);
-        }
-    }
-
-    /**
-     * Send a welcome message along with suggested actions for the user to click.
-     * @param {TurnContext} turnContext A TurnContext instance containing all the data needed for processing this conversation turn.
-     */
-    async sendWelcomeMessage(turnContext) {
-        const activity = turnContext.activity;
-        if (activity.membersAdded) {
-            // Iterate over all new members added to the conversation.
-            for (const idx in activity.membersAdded) {
-                if (activity.membersAdded[idx].id !== activity.recipient.id) {
-                    const welcomeMessage = `Welcome to suggestedActionsBot ${ activity.membersAdded[idx].name }. ` +
-                        `This bot will introduce you to Suggested Actions. ` +
-                        `Please select an option:`;
-                    await turnContext.sendActivity(welcomeMessage);
-                    await this.sendSuggestedActions(turnContext);
+            const utterance = (turnContext.activity.text || '').trim().toLowerCase();
+            if (utterance === 'cancel') {
+                if (dc.activeDialog) {
+                    await dc.cancelAllDialogs();
+                    await dc.context.sendActivity(`Ok... canceled.`);
+                } else {
+                    await dc.context.sendActivity(`Nothing to cancel.`);
                 }
             }
-        }
-    }
 
-    /**
-     * Send suggested actions to the user.
-     * @param {TurnContext} turnContext A TurnContext instance containing all the data needed for processing this conversation turn.
-     */
-    async sendSuggestedActions(turnContext) {
-        var reply = MessageFactory.suggestedActions(['Red', 'Yellow', 'Blue'], 'What is the best color?');
-        await turnContext.sendActivity(reply);
+            if (!dc.context.responded) {
+                // Continue the current dialog if one is pending.
+                await dc.continueDialog();
+            }
+
+            if (!dc.context.responded) {
+                // If no response has been sent, start the onboarding dialog.
+                await dc.beginDialog('root');
+            }
+        } else if (
+            turnContext.activity.type === ActivityTypes.ConversationUpdate &&
+             turnContext.activity.membersAdded[0].name !== 'Bot'
+        ) {
+            // Send a "this is what the bot does" message.
+            const description = [
+                'This is a bot that demonstrates an alternate dialog system',
+                'which uses a slot filling technique to collect multiple responses from a user.',
+                'Say anything to continue.'
+            ];
+            await turnContext.sendActivity(description.join(' '));
+        }
+
+        await this.conversationState.saveChanges(turnContext);
     }
 }
 
-module.exports.SuggestedActionsBot = SuggestedActionsBot;
+module.exports.SampleBot = SampleBot;
