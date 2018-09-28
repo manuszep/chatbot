@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-const { ActivityTypes, MessageFactory } = require('botbuilder');
+const { ActivityTypes, MessageFactory, CardFactory } = require('botbuilder');
 const { DialogSet, ChoicePrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 
 const { SlotFillingDialog } = require('./SlotFillingDialog');
 const { SlotDetails } = require('./SlotDetails');
+const ImageGalleryCard = require('./resources/ImageGalleryCard.json');
 
 const DIALOG_STATE_PROPERTY = 'dialogState';
-
 class SampleBot {
     /**
      * MainDialog defines the core business logic of this bot.
@@ -60,6 +60,7 @@ class SampleBot {
     }
 
     async promptForL2(step) {
+        console.log(step);
         return await step.prompt('level2', `Sub domain`);
     }
 
@@ -134,15 +135,25 @@ class SampleBot {
              turnContext.activity.membersAdded[0].name !== 'Bot'
         ) {
             // Send a "this is what the bot does" message.
-            const description = [
-                'This is a bot that demonstrates an alternate dialog system',
-                'which uses a slot filling technique to collect multiple responses from a user.',
-                'Say anything to continue.'
-            ];
-            await turnContext.sendActivity(description.join(' '));
+            await this.sendWelcomeMessage(turnContext);
+            // await turnContext.sendActivity(description.join(' '));
         }
 
         await this.conversationState.saveChanges(turnContext);
+    }
+
+    /**
+     * Sends welcome messages to conversation members when they join the conversation.
+     * Messages are only sent to conversation members who aren't the bot.
+     * @param {TurnContext} turnContext
+     */
+
+    async sendWelcomeMessage(turnContext) {
+        await turnContext.sendActivity({
+            text: 'Here is an Adaptive Card:',
+            attachments: [CardFactory.adaptiveCard(ImageGalleryCard)]
+        });
+        await turnContext.sendActivity(`Welcome message`);
     }
 }
 
