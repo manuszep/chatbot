@@ -149,11 +149,103 @@ class SampleBot {
      */
 
     async sendWelcomeMessage(turnContext) {
-        await turnContext.sendActivity({
-            text: 'Here is an Adaptive Card:',
-            attachments: [CardFactory.adaptiveCard(ImageGalleryCard)]
-        });
+        // await turnContext.sendActivity({ attachments: [this.createAnimationCard()] });
+        // await turnContext.sendActivity({ attachments: [this.createThumbnailCard()] });
         await turnContext.sendActivity(`Welcome message`);
+        
+        await turnContext.sendActivity({
+            attachmentLayout: 'carousel',
+            attachments: [this.createHeroCard(), this.createHeroCard()] 
+        });
+        // await turnContext.sendActivity({
+        //     text: 'Here is an Adaptive Card:',
+        //     attachments: [CardFactory.adaptiveCard(ImageGalleryCard)]
+        // });
+    }
+
+    createAnimationCard() {
+        return CardFactory.animationCard(
+            'Microsoft Bot Framework',
+            [
+                { url: 'https://i.giphy.com/Ki55RUbOV5njy.gif' }
+            ],
+            [],
+            {
+                subtitle: 'Animation Card'
+            }
+        );
+    }
+
+    createThumbnailCard() {
+        return CardFactory.thumbnailCard(
+            'BotFramework Thumbnail Card',
+            [{ url: 'https://sec.ch9.ms/ch9/7ff5/e07cfef0-aa3b-40bb-9baa-7c9ef8ff7ff5/buildreactionbotframework_960.jpg' }],
+            [{
+                type: 'openUrl',
+                title: 'Get started',
+                value: 'https://docs.microsoft.com/en-us/azure/bot-service/'
+            }],
+            {
+                subtitle: 'Your bots — wherever your users are talking.',
+                text: 'Build and connect intelligent bots to interact with your users naturally wherever they are, from text/sms to Skype, Slack, Office 365 mail and other popular services.'
+            }
+        );
+    }
+    
+    createHeroCard() {
+        return CardFactory.heroCard(
+            'BotFramework Hero Card',
+            CardFactory.images(['https://sec.ch9.ms/ch9/7ff5/e07cfef0-aa3b-40bb-9baa-7c9ef8ff7ff5/buildreactionbotframework_960.jpg']),
+            CardFactory.actions([
+                {
+                    type: 'openUrl',
+                    title: 'Get started',
+                    value: 'https://docs.microsoft.com/en-us/azure/bot-service/'
+                }
+            ])
+        );
+    }
+
+    /**
+     * Create the choices with synonyms to render for the user during the ChoicePrompt.
+     */
+    getChoices() {
+        const cardOptions = [
+            {
+                value: 'Animation Card',
+                synonyms: ['1', 'animation', 'animation card']
+            },
+            {
+                value: 'Audio Card',
+                synonyms: ['2', 'audio', 'audio card']
+            },
+            {
+                value: 'Hero Card',
+                synonyms: ['3', 'hero', 'hero card']
+            },
+            {
+                value: 'Receipt Card',
+                synonyms: ['4', 'receipt', 'receipt card']
+            },
+            {
+                value: 'Signin Card',
+                synonyms: ['5', 'signin', 'signin card']
+            },
+            {
+                value: 'Thumbnail Card',
+                synonyms: ['6', 'thumbnail', 'thumbnail card']
+            },
+            {
+                value: 'Video Card',
+                synonyms: ['7', 'video', 'video card']
+            },
+            {
+                value: 'All Cards',
+                synonyms: ['8', 'all', 'all cards']
+            }
+        ];
+
+        return cardOptions;
     }
 }
 
