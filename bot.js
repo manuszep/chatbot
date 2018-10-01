@@ -48,12 +48,27 @@ class SampleBot {
     }
 
     async promptForL1(step) {
-        await step.prompt('level1', 'Domain', ['Assistance', 'Déclaration', 'Réparation', 'Autres']);
+        await step.prompt('level1', 'Veuillez choisir une catégories ci-dessous', ['Assistance', 'Déclaration', 'Réparation', 'Autres']);
     }
 
     async promptForL2(step) {
-        console.log(step);
-        return await step.prompt('level2', `Sub domain`);
+        switch (step.result.value) {
+        case 'Déclaration':
+            console.log('declaration');
+            break;
+        case 'Assistance':
+            console.log('Assistance');
+            return await step.prompt('level2', `Sub domain`, ['AssistanceOutsideBE_FR', 'AssistanceUnhappy_FR', 'Book_Depanneur_FR', 'DépanneurFriendliness_FR', 'DépanneurLocation_FR', 'FlatTire_FR', 'HeurtAuto_FR', 'HeurtAutoAnimal_FR', 'ProblemCar_FR']);
+        case 'Réparation':
+            console.log('Réparation');
+            break;
+        case 'Autres':
+            console.log('Autres');
+            break;
+        default:
+            console.log('default');
+            return await step.prompt('level2', `Sub domain`);
+        }
     }
 
     // This is the second step of the WaterfallDialog.
@@ -99,9 +114,9 @@ class SampleBot {
      */
     async onTurn(turnContext) {
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
+        const dc = await this.dialogs.createContext(turnContext);
         if (turnContext.activity.type === ActivityTypes.Message) {
             // Create dialog context.
-            const dc = await this.dialogs.createContext(turnContext);
 
             const utterance = (turnContext.activity.text || '').trim().toLowerCase();
             if (utterance === 'cancel') {
@@ -128,6 +143,7 @@ class SampleBot {
         ) {
             // Send a "this is what the bot does" message.
             await this.sendWelcomeMessage(turnContext);
+            await dc.beginDialog('root');
             // await turnContext.sendActivity(description.join(' '));
         }
 
@@ -143,8 +159,7 @@ class SampleBot {
     async sendWelcomeMessage(turnContext) {
         // await turnContext.sendActivity({ attachments: [this.createAnimationCard()] });
         // await turnContext.sendActivity({ attachments: [this.createThumbnailCard()] });
-        await turnContext.sendActivity(`Welcome message`);
-        
+        await turnContext.sendActivity(`Bonjour, comment puis-je vous aider ? `);
         // await turnContext.sendActivity({
         //     attachmentLayout: 'carousel',
         //     attachments: [this.createHeroCard(), this.createHeroCard()] 
