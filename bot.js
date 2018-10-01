@@ -24,14 +24,6 @@ class SampleBot {
         // Create a dialog set to include the dialogs used by this bot.
         this.dialogs = new DialogSet(this.dialogState);
 
-        const l1Slot = new SlotDetails('level1', 'level1', this.getSuggestedActions([
-            'Assistance',
-            'Déclaration',
-            'Réparation',
-            'Autres'
-        ], 'Domaine'));
-        const l2Slot = new SlotDetails('level2', 'level2', 'Subdomain');
-
         // Add the individual child dialogs and prompts used.
         // Note that the built-in prompts work hand-in-hand with our custom SlotFillingDialog class
         // because they are both based on the provided Dialog class.
@@ -153,10 +145,10 @@ class SampleBot {
         // await turnContext.sendActivity({ attachments: [this.createThumbnailCard()] });
         await turnContext.sendActivity(`Welcome message`);
         
-        await turnContext.sendActivity({
-            attachmentLayout: 'carousel',
-            attachments: [this.createHeroCard(), this.createHeroCard()] 
-        });
+        // await turnContext.sendActivity({
+        //     attachmentLayout: 'carousel',
+        //     attachments: [this.createHeroCard(), this.createHeroCard()] 
+        // });
         // await turnContext.sendActivity({
         //     text: 'Here is an Adaptive Card:',
         //     attachments: [CardFactory.adaptiveCard(ImageGalleryCard)]
